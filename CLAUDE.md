@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Qué es esto
 
-Todo el proyecto es un único archivo HTML autocontenido, `4 - Vauclair-Immobilier.html` (~7.200 líneas, ~1 MB). Es una aplicación de demostración para una agencia inmobiliaria suiza ficticia, Vauclair Immobilier SA, con sede en Lavaux (cantón de Vaud). La aplicación tiene dos modos que comparten un único almacén de datos:
+Todo el proyecto es un único archivo HTML autocontenido, `index.html` (~7.200 líneas, ~1 MB). Es una aplicación de demostración para una agencia inmobiliaria suiza ficticia, Vauclair Immobilier SA, con sede en Lavaux (cantón de Vaud). La aplicación tiene dos modos que comparten un único almacén de datos:
 
 - **Carte vivante**: un mapa 3D en vivo del pueblo, hecho con Three.js, que muestra los inmuebles y al personal a lo largo de su jornada.
 - **Back-office**: el CRM/ERP de la agencia. Cubre inmuebles, mandatos, contactos, matching, visitas, ofertas y ventas, alquileres, administración de fincas (gérance), intervenciones técnicas, promociones y obras, facturación, agenda, gestión documental (GED) y configuración.
@@ -17,7 +17,9 @@ Los textos de la interfaz, los valores de los datos y los comentarios del códig
 
 ## Ejecución y herramientas
 
-No hay paso de build, gestor de paquetes, tests, linter ni repositorio git. Abre el archivo en un navegador o sirve el directorio con cualquier servidor estático. La aplicación necesita acceso a internet para Google Fonts y para `three@0.165.0`, que se carga desde jsDelivr mediante un `importmap`. El nombre del archivo contiene espacios: ponlo entre comillas en los comandos de shell.
+No hay paso de build, gestor de paquetes, tests ni linter. Abre `index.html` en un navegador o sirve el directorio con cualquier servidor estático. La aplicación necesita acceso a internet para Google Fonts y para `three@0.165.0`, que se carga desde jsDelivr mediante un `importmap`.
+
+**Publicación:** el repositorio es `github.com/mynhar/agencia-inmobiliaria` (rama `main`) y se publica con GitHub Pages en https://mynhar.github.io/agencia-inmobiliaria/. Cada push a `main` actualiza la web en uno o dos minutos. GitHub Pages sirve `index.html` en la raíz, así que no cambies el nombre del archivo.
 
 **Live Server** (extensión de VS Code) funciona con una condición: no escribas nunca `</body>` literal dentro de JavaScript; usa `<\/body>`, igual que ya se hace con `<\/script>`. Live Server inserta su script de recarga delante de *cada* `</body>` del archivo, pero solo ajusta `Content-Length` para una inserción. Con más de una, rompe los scripts afectados y el navegador recibe el archivo recortado por el final, justo donde está el mapa 3D, que entonces sale en blanco.
 
