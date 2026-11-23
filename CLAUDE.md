@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Qué es esto
 
-Todo el proyecto es un único archivo HTML autocontenido, `index.html` (~7.200 líneas, ~1 MB). Es una aplicación de demostración para una agencia inmobiliaria suiza ficticia, Vauclair Immobilier SA, con sede en Lavaux (cantón de Vaud). La aplicación tiene dos modos que comparten un único almacén de datos:
+Casi todo el proyecto es un único archivo HTML autocontenido, `index.html` (~7.200 líneas, ~1 MB). La única excepción es la carpeta `i18n/`, con la traducción al inglés y al español (ver «Idiomas»). Es una aplicación de demostración para una agencia inmobiliaria suiza ficticia, Vauclair Immobilier SA, con sede en Lavaux (cantón de Vaud). La aplicación tiene dos modos que comparten un único almacén de datos:
 
 - **Carte vivante**: un mapa 3D en vivo del pueblo, hecho con Three.js, que muestra los inmuebles y al personal a lo largo de su jornada.
 - **Back-office**: el CRM/ERP de la agencia. Cubre inmuebles, mandatos, contactos, matching, visitas, ofertas y ventas, alquileres, administración de fincas (gérance), intervenciones técnicas, promociones y obras, facturación, agenda, gestión documental (GED) y configuración.
 
-Los textos de la interfaz, los valores de los datos y los comentarios del código están en francés (`fr-CH`). La aplicación sigue formatos y normas suizos:
+Los textos de la interfaz, los valores de los datos y los comentarios del código están en francés (`fr-CH`). El francés es el idioma de origen; el inglés y el español se aplican al mostrar la página. La aplicación sigue formatos y normas suizos:
 
 - importes en CHF, con `’` como separador de miles
 - IVA al 8,1 % y QR-facturas
@@ -28,6 +28,8 @@ No hay paso de build, gestor de paquetes, tests ni linter. Abre `index.html` en 
 - `VX.S`: el estado completo
 - `VX.reset()`: vuelve a generar los datos de demostración
 - `APP.setMode('map'|'bo')`: cambia de modo
+- `I18N.set('fr'|'en'|'es')`: cambia de idioma (recarga la página)
+- `I18N.faltantes()`: textos franceses mostrados que no tienen traducción (ver «Idiomas»)
 - `APP.open('<moduleId>', { id, tab })`: abre un módulo del back-office
 
 ## Ciclo de vida de los datos
@@ -43,6 +45,7 @@ No hay paso de build, gestor de paquetes, tests ni linter. Abre `index.html` en 
 
 Los scripts se ejecutan en el orden del documento. Cada `<script>` clásico es una IIFE que publica una variable global.
 
+0. **`window.I18N`**: la traducción. Se carga antes que todo lo demás desde `i18n/diccionario.js` e `i18n/i18n.js`. Si esos archivos no cargan, un stub en línea deja la aplicación en francés.
 1. **`window.VX`**: la capa de datos compartida.
    - `VX.util`: utilidades de fechas, `chf`/`chfK`, `esc`, `uid`, `norm` y similares.
    - Tablas de referencia: `ROLES`, `STATUS`, `ROOM_TYPES`, `PORTALS`.
@@ -83,6 +86,40 @@ Cada script empieza con un comentario de cabecera (`VAUCLAIR — …`) que indic
   - `data-open-emp="empId"`
   - `data-map="type:id[:view]"`: cambia al mapa 3D y centra el objetivo.
 - Los números de documento salen de `VX.nextNo(coll, prefix)` y tienen la forma `PREFIX-YYYY-NNN`.
+
+## Idiomas (i18n)
+
+La interfaz se muestra en francés, inglés o español. El español es **latinoamericano neutro**: departamento, auto, cotización, tasa, condominio, asamblea, administración de propiedades, programar, cancelar, comillas “ ”. Mantén ese vocabulario en las entradas nuevas y evita los términos de España (piso, coche, presupuesto por «devis», tipo por «taux», propiedad horizontal, junta, fincas, planificar, anular). El selector FR · EN · ES está en la barra superior. El idioma se elige así, por orden: `?lang=` en la URL, después `localStorage['vauclair-lang']`, después el idioma del navegador y, por último, el francés.
+
+**El código sigue escribiendo en francés.** No hay llamadas a una función de traducción repartidas por el código. `i18n/i18n.js` traduce lo que se *muestra*:
+
+- Un `MutationObserver` traduce nodos de texto y los atributos `title`, `placeholder`, `aria-label`, `alt`, `data-tip` y `label`.
+- Se interceptan los textos de canvas (`fillText`/`strokeText`/`measureText`), usados por los letreros y planos del mapa 3D; `document.write`, usado por las ventanas de impresión; y `alert`/`confirm`/`prompt`.
+- Los nodos dentro de `script`, `style`, `textarea`, `code`, `pre` y `kbd` se ignoran, igual que cualquier elemento con `translate="no"` o `.notranslate`.
+
+Consecuencias al tocar el código:
+
+- Los estados en francés (`'À vendre'`, `'Acceptée'`…) son a la vez claves de la lógica. No los traduzcas en el código: se traducen solos al mostrarse.
+- Si el código *recorta* o *transforma* un texto antes de mostrarlo (por ejemplo `.slice(0, 7)`), tradúcelo primero con `I18N.tr(texto)`. Si no, el recorte ya no coincide con ninguna clave.
+- Las fechas usan `I18N.locale` (`fr-CH`, `en-GB` o `es-419`, el código de español latinoamericano). Los importes y números siguen en `fr-CH` a propósito, con el formato suizo `CHF 1’234,50`.
+- Las variables de las plantillas de documentos (`{bien.nom}`, `{montant}`…) no se traducen.
+
+**Diccionario** (`i18n/diccionario.js`): un objeto `"texto francés": ["English", "Español"]`. Los huecos `{0}`, `{1}`… se rellenan con el valor real (números, nombres, fechas), que a su vez se intenta traducir. Para cada texto, el motor prueba por orden:
+
+1. la coincidencia exacta
+2. los números convertidos en `{n}`
+3. los patrones largos con huecos
+4. los trozos separados por ` · `, ` — ` o ` – `
+5. los demás patrones
+6. «fecha à 16:00»
+7. un texto conocido pegado a un valor («brut CHF 389 k»)
+8. sin signos de puntuación alrededor
+9. sin distinguir mayúsculas
+10. las listas separadas por comas
+
+Las claves que empiezan o terminan con `·`, `:` o `—` también se registran sin ellos.
+
+**Añadir o corregir traducciones:** edita `i18n/diccionario.js` directamente; la sección final reúne las entradas añadidas a mano. Para encontrar lo que falta, abre la aplicación con `?lang=en` o `?lang=es`, recorre las pantallas y ejecuta `I18N.faltantes()` en la consola. La lista incluye nombres propios (personas, calles, inmuebles), que se dejan en francés a propósito, y trozos intermedios que el motor probó antes de dar con la traducción completa. Lo que importa es el texto francés que sigue *visible*. Un texto nuevo en el código sin entrada en el diccionario simplemente se muestra en francés.
 
 ## Estilos
 
